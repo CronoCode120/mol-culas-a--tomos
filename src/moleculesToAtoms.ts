@@ -1,42 +1,30 @@
+interface MoleculeObject {
+  [key: string]: number
+}
+
+interface InnerAtomObject {
+  molecObj: MoleculeObject,
+  number: string,
+  atom: string
+}
+
 export function parseMolecule(molec: string) {
   let atom = '';
   let number = '';
   let molecObj = {};
-
-  const upperCase = /[A-Z]/;
-  const lowerCase = /[a-z]/;
   
   for (let i = 0; i < molec.length; i++) {
     const char = molec[i];
-
-    if (!isNaN(parseInt(char))) {
+    const isNumber = !isNaN(parseInt(char))
+    if (isNumber) {
       number += char;
-      
-    } else if (upperCase.test(char)) {
-      if (atom !== '') {
-        if (!molecObj[atom]) {
-          molecObj[atom] = 0
-        }
-        if (number !== '') {
-          molecObj[atom] += parseInt(number);
-          number = '';
-        } else {
-          molecObj[atom] += 1;
-        }
-      }
-      atom = char;
-
-    } else if (lowerCase.test(char)) {
-      atom += char;
     } else if (char === '[' || char === '(') {
-      const closingChar = char === '[' ? ']' : ')';
-      let parenthesis = '';
-      for (let j = i + 1; j < molec.length; j++) {
-        if (molec.length[j] === closingChar) {
-          parseMolecule(parenthesis);
-        }
-        parenthesis += molec[j];
-      }
+      getInnerMolecule(char, i, molec)
+    } else {
+      const {atom: _atom, molecObj: _molecObj, number: _number} = getNewAtom(char, atom, molecObj, number)
+      atom = _atom,
+      molecObj = _molecObj,
+      number = _number
     }
   }
 
@@ -46,16 +34,51 @@ export function parseMolecule(molec: string) {
     }
     molecObj[atom] += number ? parseInt(number) : 1;
   }
-
   return molecObj;
 }
 
-function newAtom() {
-  
+export function getNewAtom(
+  currentChar: string,
+  atom:string,
+  molecObj: MoleculeObject,
+  number: string
+): InnerAtomObject {
+  const upperCase = /[A-Z]/;
+  const lowerCase = /[a-z]/;
+  if (upperCase.test(currentChar)) {
+    if (atom !== '') {
+      if (!molecObj[atom]) {
+        molecObj[atom] = 0
+      }
+      if (number !== '') {
+        molecObj[atom] += parseInt(number);
+        number = '';
+      } else {
+        molecObj[atom] += 1;
+      }
+    }
+    atom = currentChar;
+  } else if (lowerCase.test(currentChar)) {
+    atom += currentChar;
+  }
+  return {
+    molecObj,
+    number,
+    atom
+  }
 }
 
-interface MoleculeObject {
-  [key: string]: number
+function getInnerMolecule(
+  currentChar: string,
+  index: number,
+  molec: string
+): MoleculeObject {
+  const closingChar = currentChar === '[' ? ']' : ')';
+  let innerMolecule = '';
+  for (index + 1; molec[index] === closingChar; index++) {
+    innerMolecule += molec[index];
+  }
+  return parseMolecule(innerMolecule)
 }
 
 function sumMolecules(molecule: MoleculeObject, secondMolecule: MoleculeObject) {
